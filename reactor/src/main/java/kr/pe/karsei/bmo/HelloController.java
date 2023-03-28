@@ -13,6 +13,61 @@ import java.util.stream.Stream;
 
 @RestController
 public class HelloController {
+    // https://devsh.tistory.com/entry/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-%EB%A6%AC%EC%95%A1%ED%84%B0-%EA%B8%B0%EC%B4%88-1-%EB%AA%A8%EB%85%B8
+    /*
+     * Mono.just 는 객체를 인자로 받은 뒤 Mono 로 래핑하는 팩토리 함수이다.
+     * Flux 와 Mono 는 Lazy 로 동작하기 때문에 subscribe 를 호출하지 않으면 작성한 로직이 동작하지 않는다.
+     *
+     * map 은 전달받은 요소를 새로운 모노로 변환할 때 사용하는 연산자다.
+     */
+    @GetMapping("mono")
+    public Mono<String> mono() {
+        return Mono.just("Hello, World!")
+                .map(s -> { System.out.println(s); return s; });
+    }
+
+    /*
+     * Mono.justOrEmpty 는 값이 null 이 될 수 있는 데이터를 받아서 처리한다.
+     * Mono.just 는 값이 null 이면 NPE 를 발생시키므로 주의해야 한다.
+     */
+    @GetMapping("mono-empty")
+    public Mono<String> monoEmpty() {
+        String greeting = null;
+        return Mono.justOrEmpty(greeting)
+                .map(s -> { System.out.println(s); return s; });
+    }
+
+    /*
+     * null 인 데이터를 제공받으면 switchIfEmpty 를 사용해 처리할 수 있다.
+     * 이때 switchIfEmpty 는 값이 null 이면 새로운 데이터로 변환해주는데 Mono.defer 연산을 사용하면 내부 코드의 호출이 지연되어 실제 사용되는 시점에 호출된다.
+     */
+    @GetMapping("mono-switch")
+    public Mono<String> monoSwitch() {
+        String greeting = null;
+        return Mono.justOrEmpty(greeting)
+                // null 일 경우에만 동작한다.
+                .switchIfEmpty(Mono.defer(() -> Mono.just("yeah, there is no one")))
+                // 위와 아래는 다른데, 아래의 경우 값의 존재 유무에 상관없이 내부 코드가 동작된다.
+                //.switchIfEmpty(Mono.just("yeah, there is no one"))
+                .defaultIfEmpty("yeah, full")
+                .map(s -> { System.out.println(s); return s; });
+    }
+
+    /*
+     * 내부에서 로직에 대한 결과로 Mono 객체를 생성할 경우 Mono.fromSupplier 를 사용할 수 있다.
+     * Supplier 는 Java 8 에서 추가된 함수형 인터페이스로, 별도의 인자없이 내부의 값을 반환하는 T get() 함수를 구현하도록 되어 있다.
+     * 특정한 구현 로직이 필요한 경우나 늦은 초기화가 필요한 경우 사용된다.
+     */
+    @GetMapping("mono-supplier")
+    public Mono<String> monoSupplier() {
+        return Mono.fromSupplier(() -> {
+            String greeting = "hello, world";
+            greeting += "~!";
+            return greeting;
+        })
+                .map(s -> { System.out.println(s); return s; });
+    }
+
     // https://www.devkuma.com/docs/spring-webflux/
     /*
      * 단순히 요청을 날리면 text/plain 으로 받는다.
