@@ -65,7 +65,50 @@ public class HelloController {
             greeting += "~!";
             return greeting;
         })
+                // 예외가 발생한 경우 별도의 핸들링이 가능하다.
+                .onErrorResume(Mono::error)
                 .map(s -> { System.out.println(s); return s; });
+    }
+
+    /*
+     * flatMap 은 주로 단일 요소를 복수개의 요소로 변환할 때 사용된다. map 과는 다르게 마지막에서 반환할 요소를 Mono.just 와 같은 팩토리 함수로 감싸서 반환해야 한다.
+     * 특정 조건에 따라 에러를 발생시키거나 비어 있는 값을 리턴할 수 있다.
+     */
+    @GetMapping("mono-flatmap")
+    public Mono<String> monoFlatMap() {
+        return Mono.just("this is a text for test")
+                .flatMap(it -> {
+                    if (it.contains("test")) {
+                        return Mono.just("nooooooo test");
+                    }
+                    else {
+                        return Mono.empty();
+                    }
+                });
+    }
+
+    /*
+     * filter 연산자는 특정 조건이 true 인지 판단하여 true 인 경우에만 데이터를 통지하는 연산자이다.
+     */
+    @GetMapping("mono-filter")
+    public Mono<String> monoFilter() {
+        return Mono.just("this is a text for test")
+                .filter(it -> it.startsWith("this"));
+    }
+
+    /*
+     * zip 은 여러 개의 Mono 객체를 하나의 Mono 로 결합할 수 있다.
+     * zip 함수의 처리가 완료되어 새로운 Mono 를 생성한 뒤 다음 연산자에 통지를 보내는 시점은 인자로 제공된 Mono 중 가장 오래 수행된 Mono 의 시간을 기준으로 결합한다.
+     * 보통 각 Mono 의 로직을 비동기 처리한 뒤 결과에 대한 결합을 위해 zip 을 사용한다.
+     * 최대 8개의 Mono 를 인자로 받을 수 있지만 그 이상의 경우 컴비네이터(Combinator) 함수를 사용하여 합칠 수 있다.
+     */
+    @GetMapping("mono-zip")
+    public Mono<String> monoZip() {
+        Mono<String> m1 = Mono.just("This");
+        Mono<String> m2 = Mono.just("is");
+        Mono<String> m3 = Mono.just("a test String");
+        return Mono.zip(m1, m2, m3)
+                .map(tuple -> String.format("%s %s %s", tuple.getT1(), tuple.getT2(), tuple.getT3()));
     }
 
     // https://www.devkuma.com/docs/spring-webflux/
